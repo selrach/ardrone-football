@@ -60,10 +60,11 @@ wsServer.on('connection', function(conn) {
         drone.down(msg[0]);
         break;
       case 'turnaround':
-        setTimeout(function(){
-          drone.animate('turnaround', 100);          
-        }, 100);
+        drone.animate('turnaround', 100);          
       break;
+      case 'animate':
+        drone.animate(msg[0], msg[1]);
+        break;
       case 'stop':
         drone.stop();
         break;
