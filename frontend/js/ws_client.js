@@ -111,6 +111,9 @@ WsClient.prototype.clockwise = function(val) {
   this._send(['clockwise', val]);
 };
 
+WsClient.prototype.animate = function(val, time) {
+  this._send(['animate', val, time]);
+};
 
 WsClient.prototype.stop = function() {
   this._send(['stop']);

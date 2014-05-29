@@ -14,7 +14,7 @@ var frameBuffer = new Uint8Array(videoCanvas.width * videoCanvas.height * 4);
 var videoHistogram = new Histogram(200);
 var navdataHistogram = new Histogram(200);
 var render = renderer();
-var detect = detector({maxDiff: 0.07});
+var detect = detector({maxDiff: 0.05});
 var lastNavdata;
 var pickedColor;
 var detected;
@@ -60,6 +60,7 @@ function detector(options) {
   var b = frameBuffer;
 
   var missCnt = 0;
+  var hitCnt = 0;
 
   return function detect() {
     ns.getImageData(b);
@@ -67,6 +68,7 @@ function detector(options) {
     var count = 0;
     var xSum = 0;
     var ySum = 0;
+//    var newColor = [0,0,0,0];
     for (var x = 1; x < w - 1; x++) {
       for (var y = 1; y < h - 1; y++) {
         var match = true;
@@ -78,6 +80,9 @@ function detector(options) {
               if (diffPercent > maxDiff) {
                 match = false;
               }
+//              else {
+//                newColor[i] += b[o+i];
+//              }
             }
           }
         }
@@ -89,25 +94,40 @@ function detector(options) {
         }
       }
     }
-    detected = {x: xSum / count, y: ySum / count};
-    var xVal = (detected.x - w / 2) / (w / 2);
-    var yVal = (detected.y - h / 2) / (h / 2);
-    xPID.update(xVal);
-    yPID.update(yVal);
+
+    if(count < 5) {
+      detected = false;
+      count = 1;
+    } else {
+//      for(var k=0;k<newColor.length; k++) {
+//        pickedColor[k] = Math.floor((pickedColor[k] + Math.floor(newColor[k]  / count)) / 2);
+//      }
+      detected = {x: xSum / count, y: ySum / count};
+      var xVal = (detected.x - w / 2) / (w / 2);
+      var yVal = (detected.y - h / 2) / (h / 2);
+      xPID.update(xVal);
+      yPID.update(yVal);
+    }
 
     if (state === 'follow') {
-      if (xSum < 25) {
-        missCnt += 1;
+      if (detected === false) {
+        missCnt++;
         if(missCnt < 2) {
           client.stop();
+          hitCnt = 0;
         }
-        if (missCnt > 20) {
-          client.clockwise(0.1);
+        if (missCnt % 300 === 100) {
+          client.animate('turnaround',250);
         }
       } else {
         missCnt = 0;
-        client.clockwise(-xPID.pid().sum);
-        client.front(0.1);
+        hitCnt++;
+        if(hitCnt > 5) {
+          client.right(-xPID.pid().sum);
+        }
+        if(hitCnt > 30) {
+          client.front(0.2);
+        }
       }
     } else {
       client.stop();
@@ -323,16 +343,18 @@ flightButton.addEventListener('click', function () {
   if (this.textContent === 'Start') {
     setState('takeoff');
     client.on('altitudeChange', function (v) {
-      if (v < 0.1) {
-        this.up(0.02);
-      } else if (v < 0.3) {
-        this.down(0);
-      } else if (v > 0.6) {
-        this.down(0.3);
-      } else if (v > 0.5) {
-        this.down(0.1);
-      } else if (v > 0.4) {
+        console.log(v);
+      if (v < 0.2) {
+        this.down(0.001);
+        this.up(0.1);
+      } else if (v < 0.3 && v > 0.25) {
         this.down(0.05);
+      } else if (v > 0.6) {
+        this.down(0.4);
+      } else if (v > 0.5) {
+        this.down(0.3);
+      } else if (v > 0.4) {
+        this.down(0.2);
       }
     }
   );
