@@ -9,6 +9,9 @@ function WsClient() {
   this._takeoffCbs = [];
   this._landCbs = [];
   this._connect();
+  this.upDown = 0;
+  this.frontBack = 0;
+  this.rotation = 0;
 }
 
 WsClient.prototype._connect = function() {
@@ -57,6 +60,9 @@ WsClient.prototype._connect = function() {
 };
 
 WsClient.prototype._send = function(msg) {
+  if(msg && msg.length === 2 && msg[1] === 0){
+    msg[1] = 0.001;
+  }
   msg = JSON.stringify(msg);
   if (!this._connected) {
     this._queue.push(msg);
@@ -97,18 +103,26 @@ WsClient.prototype.clockwise = function(val) {
 
 WsClient.prototype.down = function(val) {
   this._send(['down', val]);
+  this.upDown = -val;
 };
 
 WsClient.prototype.up = function(val) {
   this._send(['up', val]);
+  this.upDown = val;
+};
+
+WsClient.prototype.turnaround = function(val) {
+  this._send(['turnaround', val]);
 };
 
 WsClient.prototype.front = function(val) {
+  this.frontBack = val;
   this._send(['front', val]);
 };
 
 WsClient.prototype.clockwise = function(val) {
   this._send(['clockwise', val]);
+  this.rotation = val;
 };
 
 WsClient.prototype.animate = function(val, time) {
@@ -117,4 +131,7 @@ WsClient.prototype.animate = function(val, time) {
 
 WsClient.prototype.stop = function() {
   this._send(['stop']);
+  this.frontBack = 0;
+  this.upDown = 0;
+  this.roatation = 0;
 };
